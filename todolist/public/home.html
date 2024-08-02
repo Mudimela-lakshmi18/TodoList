@@ -1,0 +1,227 @@
+</html> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+<style>
+ * {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+body {
+  background-color: #0b87ff;
+}
+.container {
+  width: 90%;
+  max-width: 34em;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+}
+#new-task {
+  position: relative;
+  background-color: #ffffff;
+  padding: 1.8em 1.25em;
+  border-radius: 0.3em;
+  box-shadow: 0 1.25em 1.8em rgba(1, 24, 48, 0.15);
+  display: grid;
+  grid-template-columns: 9fr 3fr;
+  gap: 1em;
+}
+#new-task input {
+  font-family: "Poppins", sans-serif;
+  font-size: 1em;
+  border: none;
+  border-bottom: 2px solid #d1d3d4;
+  padding: 0.8em 0.5em;
+  color: #111111;
+  font-weight: 500;
+}
+#new-task input:focus {
+  outline: none;
+  border-color: #0b87ff;
+}
+#new-task button {
+  font-family: "Poppins", sans-serif;
+  font-weight: 500;
+  font-size: 1em;
+  background-color: #0b87ff;
+  color: #ffffff;
+  outline: none;
+  border: none;
+  border-radius: 0.3em;
+  cursor: pointer;
+}
+#tasks {
+  background-color: #ffffff;
+  position: relative;
+  padding: 1.8em 1.25em;
+  margin-top: 3.8em;
+  width: 100%;
+  box-shadow: 0 1.25em 1.8em rgba(1, 24, 48, 0.15);
+  border-radius: 0.6em;
+}
+.task {
+  background-color: #ffffff;
+  padding: 0.3em 0.6em;
+  margin-top: 0.6em;
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid #d1d3d4;
+  cursor: pointer;
+}
+.task span {
+  font-family: "Poppins", sans-serif;
+  font-size: 0.9em;
+  font-weight: 400;
+}
+.task button {
+  color: #ffffff;
+  padding: 0.8em 0;
+  width: 2.8em;
+  border-radius: 0.3em;
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+.delete {
+  background-color: #fb3b3b;
+}
+.edit {
+  background-color: #0b87ff;
+  margin-left: auto;
+  margin-right: 3em;
+}
+.completed {
+  text-decoration: line-through;
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="new-task">
+          <input type="text" placeholder="Enter The Task Here..." />
+          <button id="addTaskBtn">Add</button>
+        </div>
+        <div id="tasks"></div>
+      </div>
+</body>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const addTaskBtn = document.getElementById("addTaskBtn");
+    const taskInput = document.querySelector("#new-task input");
+    const tasksContainer = document.getElementById("tasks");
+
+    function fetchTasks() {
+        const username = localStorage.getItem('username');
+        if (!username) {
+            console.error('Username not found in localStorage.');
+            return;
+        }
+
+        fetch(`/gettask?user=${username}`)
+            .then(response => response.json())
+            .then(tasks => {
+                tasksContainer.innerHTML = '';
+                tasks.forEach(task => {
+                    const taskDiv = document.createElement('div');
+                    taskDiv.classList.add('task');
+                    taskDiv.dataset.taskName = task.task;
+                    taskDiv.innerHTML = `
+                        <span>${task.task}</span>
+                        <button class="edit">Edit</button>
+                        <button class="delete">Delete</button>
+                    `;
+                    tasksContainer.appendChild(taskDiv);
+                });
+            })
+            .catch(error => console.error('Error fetching tasks:', error));
+    }
+
+    addTaskBtn.addEventListener("click", function () {
+        const taskText = taskInput.value.trim();
+        if (taskText.length === 0) {
+            alert("Please enter a task.");
+            return;
+        }
+
+        const username = localStorage.getItem('username');
+        if (!username) {
+            console.error('Username not found in localStorage.');
+            return;
+        }
+
+        const formData = { user: username, task: taskText, completed: false };
+
+        fetch('/createtask', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.text())
+        .then(message => {
+            console.log(message);
+            fetchTasks();
+            taskInput.value = '';
+        })
+        .catch(error => console.error('Error adding task:', error));
+    });
+
+    tasksContainer.addEventListener('click', event => {
+        const taskDiv = event.target.closest('.task');
+        if (taskDiv) {
+            const taskName = taskDiv.dataset.taskName;
+            if (event.target.classList.contains('edit')) {
+                // Perform edit task functionality
+                const updatedTaskText = prompt('Enter the updated task:', taskName);
+                if (updatedTaskText) {
+                    const username = localStorage.getItem('username');
+                    const updatedTaskData = { task: updatedTaskText };
+                    fetch('/updatetask', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ user: username, task: taskName, updatedTaskData: updatedTaskData })
+                    })
+                    .then(response => response.text())
+                    .then(message => {
+                        console.log(message);
+                        fetchTasks();
+                    })
+                    .catch(error => console.error('Error updating task:', error));
+                }
+            } else if (event.target.classList.contains('delete')) {
+                // Perform delete task functionality
+                const confirmDelete = confirm('Are you sure you want to delete this task?');
+                if (confirmDelete) {
+                    const username = localStorage.getItem('username');
+                    fetch('/deletetask', {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ user: username, task: taskName })
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            taskDiv.remove();
+                        } else {
+                            throw new Error('Failed to delete task');
+                        }
+                    })
+                    .catch(error => console.error('Error deleting task:', error));
+                }
+            }
+        }
+    });
+
+    fetchTasks();
+});
+</script>

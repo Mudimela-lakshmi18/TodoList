@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title> 
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div id="im">
+        <img src="loginimage.webp" alt="loginimage">
+    </div>
+    <div class="form-container">
+        <h2>Login</h2>
+        <form id="login-form" action="/login" method="POST">
+          <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="user" placeholder="Enter your name" required autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="pass" placeholder="Password" required>
+          </div>
+          <button type="submit" id="login-button" class="submit-btn">Login</button>
+        </form>
+        <p>Don't have an account? <a class="link" href="signup.html">SignUp</a></p>
+        <p id="error-message"></p>
+    </div>
+
+    <script>
+        document.getElementById("login-button").addEventListener("click", function(event) {
+            event.preventDefault(); 
+            
+            var username = document.getElementById("username").value;
+            var password = document.getElementById("password").value;
+
+            if (username.trim() === "" || password.trim() === "") {
+                document.getElementById("error-message").innerText = "Please enter both username and password.";
+                return;
+            }
+            
+            const formData = {
+                user: username,
+                pass: password
+            };
+
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.text())
+            .then(message => {
+                console.log(message);
+                if (message === "Login Successful") {
+                    // Store the username in local storage
+                    localStorage.setItem('username', username);
+                    window.location.href ="/home12.html";
+                } else {
+                    document.getElementById("error-message").innerText = message; 
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById("error-message").innerText = "Error logging in. Please try again.";
+            });
+        });
+    </script>
+</body>
+</html>
+
